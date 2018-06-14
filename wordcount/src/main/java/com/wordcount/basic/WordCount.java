@@ -1,5 +1,6 @@
 package com.wordcount.basic;
 
+import org.apache.spark.HashPartitioner;
 import org.apache.spark.SparkConf;
 import org.apache.spark.api.java.JavaPairRDD;
 import org.apache.spark.api.java.JavaRDD;
@@ -22,7 +23,8 @@ public class WordCount
         JavaSparkContext sc = new JavaSparkContext(conf);
 
         // load input data, which is a text file read main
-        JavaRDD<String> input = sc.textFile( filename );
+        // the repartition breaks up the document into 20 segments for parallelism
+        JavaRDD<String> input = sc.textFile( filename ).repartition(20);
         // split input string into words
         JavaRDD<String> words = input.flatMap(s -> Arrays.asList(s.split(" ")));
 
@@ -34,7 +36,10 @@ public class WordCount
                 .map(q -> q.toLowerCase())
 
                 .mapToPair(t -> new Tuple2( t, 1 ) )
-                .reduceByKey( (x, y) -> (int)x + (int)y );
+                .partitionBy(new HashPartitioner(4))
+                // this is reducing that parallelism back to one
+                .reduceByKey( (x, y) -> (int)x + (int)y )
+                .coalesce(1);
 
         counts.saveAsTextFile("src/main/java/resources/output");
     }
