@@ -3,5 +3,5 @@ Implementing Map-Reduce to solve problems to understand its parallel computing c
 Done using Apache Spark on Java.
 
 Topics so far include: 
-* parallel document word count
+* Parallel document word count
 * Matrix and Vector multiplication
