@@ -4,7 +4,6 @@ import org.apache.commons.lang.ArrayUtils;
 import org.apache.spark.SparkConf;
 import org.apache.spark.api.java.JavaPairRDD;
 import org.apache.spark.api.java.JavaSparkContext;
-import org.apache.spark.api.java.function.VoidFunction;
 import scala.Tuple2;
 import scala.Tuple3;
 import sun.jvm.hotspot.utilities.Assert;
@@ -15,8 +14,10 @@ import java.util.List;
 import java.util.stream.IntStream;
 
 /**
- * Matrix multiplication!
- *
+ * Matrix- Vector multiplication
+ * This takes a matrix and a vector and uses mapreduce to calculate the dot product\
+ * as explained in Mining of Massive Datasets:
+ * http://infolab.stanford.edu/~ullman/mmds/ch2.pdf
  */
 public class Multiplication
 {
@@ -37,7 +38,7 @@ public class Multiplication
         // create a java version of the spark context from the configuration
         JavaSparkContext sc = new JavaSparkContext(conf);
         sc.setLogLevel("OFF");
-        JavaPairRDD<Integer, Double> counts = sc.parallelize(matrixTuples,1)
+        JavaPairRDD<Integer, Double> counts = sc.parallelize(matrixTuples,vector.length)
         .mapToPair(matElement -> new Tuple2(matElement._1(), matrix[matElement._1()][matElement._2()] * vector[matElement._2()]))
         .reduceByKey((x,y) -> (double)x+(double)y)
         .coalesce(1);
@@ -95,8 +96,11 @@ public class Multiplication
     }
 
     public static void main( String[] args ) {
-        Double[][] matrix = generateRandomMatrix(2,5);
-        Double[] vector = generateRandomVector(5);
+        int matrixRows = 20, matrixColumns = 40;
+
+        Double[][] matrix = generateRandomMatrix(matrixRows,matrixColumns);
+        Double[] vector = generateRandomVector(matrixColumns);
+
         System.out.println("Matrix: ");
         printGrid(matrix);
         System.out.println("Vector: ");

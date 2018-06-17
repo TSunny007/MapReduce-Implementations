@@ -10,8 +10,9 @@ import scala.Tuple2;
 import java.util.Arrays;
 
 /**
- * Hello world!
- *
+ * Word count of a document done using Spark. This configuration uses 20 different map functions and
+ * uses a HashPartitioner to collect the same words all into one basket. Therefore, it is able to
+ * use concurrent reducer nodes (4).
  */
 public class WordCount
 {
