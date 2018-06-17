@@ -5,3 +5,4 @@ Done using Apache Spark on Java.
 Topics so far include: 
 * Parallel document word count
 * Matrix and Vector multiplication
+* Deriving the value of Pi
