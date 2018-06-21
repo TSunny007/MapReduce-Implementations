@@ -6,3 +6,4 @@ Topics so far include:
 * Parallel document word count
 * Matrix and Vector multiplication
 * Deriving the value of Pi
+* Matrix-Matrix multiplication (important for algorithms such as Pagerank)
