@@ -53,107 +53,10 @@ public class Multiplication
         .values().collect().toArray(product);
     }
 
-    private static Double[] MatrixMultiplicationSpark(final Double[][] lhs, Double[][] rhs) {
-        Assert.that(lhs[0].length == rhs.length, "Matrix dimensions do not match");
-        // configuration to use to interact with spark
-        SparkConf conf = new SparkConf().setMaster("local").setAppName("Matrix Vector Multiplication");
-        // create a java version of the spark context from the configuration
-        JavaSparkContext sc = new JavaSparkContext(conf);
-        sc.setLogLevel("OFF");
-
-        // each Tuple is as follows:
-        // An unique identifier of where the array is from.
-        List<Tuple4<Integer, Integer, Integer, Double>> matrixValues = new ArrayList<>();
-        for (int j = 0; j < lhs[0].length; j++) {
-            for (int i = 0; i < lhs.length; i++) {
-                // we don't add tuples which would multiply out to 0 anyways
-                if (!lhs[i][j].equals(0))
-                    matrixValues.add(new Tuple4(1,i,j,lhs[i][j]));
-            }
-        }
-
-        for (int j = 0; j < rhs.length; j++) {
-            for (int k = 0; k < rhs[0].length; k++) {
-                // we don't add tuples which would multiply out to 0 anyways
-                if (!rhs[j][k].equals(0))
-                    matrixValues.add(new Tuple4(2,j,k,rhs[j][k]));
-            }
-        }
-
-        //For each matrix element mij, produce the key value pair 􏰀j,(M,i,mij)􏰁.
-        // ikewise, for each matrix element njk, produce the key value
-        // pair 􏰀j,(N,k,njk)􏰁. Note that M and N in the values are not the matrices themselves.
-        // Rather they are names of the matrices or
-        // (as we mentioned for the similar Map function used for natural join) better,
-        // a bit indicating whether the element comes from M or N.
-        JavaPairRDD<Integer, Tuple3<Integer, Integer, Double>> firstMap = sc.parallelize(matrixValues,1)
-                .mapToPair(tuple -> {
-                    if (tuple._1().equals(1)) {
-                        return new Tuple2<Integer, Tuple3<Integer, Integer, Double>>(tuple._3(), new Tuple3<>(tuple._1(),tuple._2(),tuple._4()));
-                    } else {
-                        return new Tuple2<Integer, Tuple3<Integer, Integer, Double>>(tuple._2(), new Tuple3<>(tuple._1(),tuple._3(),tuple._4()));
-                    }
-                });
-
-
-        JavaPairRDD<Integer, Tuple2<Tuple2<Integer, Integer>, Double>> firstReduce = firstMap
-                /*.partitionBy(new HashPartitioner(20))*/
-
-                //Zero Val
-                .aggregateByKey(new Tuple2<>(new Tuple2<Integer, Integer>(null,null),0.0),
-
-                //Sequential Function
-                        (aggValue, pairValue) -> {
-                    if (pairValue._1().equals(1)) {
-                        aggValue = new Tuple2<>(new Tuple2<>(pairValue._2(), aggValue._1()._2()),
-                                aggValue._2().equals(0) ? pairValue._3():aggValue._2()*pairValue._3());
-                    } else {
-                        aggValue = new Tuple2<>(new Tuple2<>(aggValue._1()._1(), pairValue._2()),
-                                aggValue._2().equals(0) ? pairValue._3():aggValue._2()*pairValue._3());
-                    }
-                    return aggValue;
-                    },
-
-                //Combine Function
-                        (aggValue, aggValue2) -> {
-                    Double newProduct = null;
-                    if (aggValue._2() != null && aggValue2._2() != null) {
-                        newProduct = aggValue._2()*aggValue2._2();
-                    } else if (aggValue._2() == null) {
-                        newProduct = aggValue._2();
-                    } else if (aggValue2._2() == null) {
-                        newProduct = aggValue2._2();
-                    } else throw new Exception("Combine on aggregate has gone haywire");
-
-
-                    aggValue = new Tuple2<>(new Tuple2<>(aggValue._1()._1() == null ? aggValue2._1()._1():aggValue._1()._1(),
-                            aggValue._1()._2() == null ? aggValue2._1()._2():aggValue._1()._2()),
-                            newProduct);
-                    return aggValue;
-                });
-                /*.partitionBy(new HashPartitioner(20))
-                .aggregateByKey(
-                        new Tuple2<Tuple2<Integer, Integer>, Double>(new Tuple2<Integer, Integer>(null,null), 0.0),
-                        (currentValue, newPairValue) -> {
-                    if (newPairValue._1() == 1) {
-                        currentValue._1()._1
-                    } ()
-                })*/
-                /*
-                .reduceByKey((x,y) -> {
-                    if (x._1().intValue() < y._1().intValue()) {
-                        return new Tuple3<Integer, Integer, Double>(x._2(), y._2(), x._3()*y._3());
-                    }
-                    else return new Tuple3<>(y._2(), x._2(), x._3()*y._3());
-                })
-                .coalesce(1)*/;
-        firstReduce.saveAsTextFile("src/main/java/output1");
-        return null;
-    }
+ 
 
     public static void main( String[] args ) {
-        // VectorMatrixMultiplication();
-        MatrixMatrixMultiplication();
+        VectorMatrixMultiplication();
 
     }
 
@@ -175,16 +78,7 @@ public class Multiplication
         System.out.println("\nMapreduce Product: ");
         printVector(ArrayUtils.toPrimitive(MatrixVectorMultiplicationSpark(matrix, vector)));
     }
-
-    public static void MatrixMatrixMultiplication() {
-        Double[][] lhs = generateRandomMatrix(2,2);
-        Double[][] rhs = generateRandomMatrix(2,2);
-        System.out.println("lhs: ");
-        printGrid(lhs);
-        System.out.println("rhs: ");
-        printGrid(rhs);
-        MatrixMultiplicationSpark(lhs,rhs);
-    }
+    
     // Helpers
 
     public static void printGrid(Double[][] matrix)
